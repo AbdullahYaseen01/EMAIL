@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email campaign – Step by step</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #a78bfa;
+      --accent-hover: #c4b5fd;
+      --success: #34d399;
+      --error: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .container { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .steps { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
+    .step-dot {
+      width: 2rem; height: 2rem; border-radius: 50%;
+      background: var(--surface); border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 600;
+    }
+    .step-dot.done { background: var(--success); border-color: var(--success); color: var(--bg); }
+    .step-dot.active { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .upload-zone:hover { border-color: var(--accent); background: rgba(167, 139, 250, 0.06); }
+    .upload-zone input { display: none; }
+    .upload-zone p { margin: 0; color: var(--muted); }
+    .upload-zone .hint { font-size: 0.875rem; margin-top: 0.5rem; }
+    .btn {
+      display: inline-block;
+      padding: 0.6rem 1.2rem;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.9375rem;
+      margin-top: 1rem;
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .preview-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .preview-table th, .preview-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .preview-table th { color: var(--muted); font-weight: 500; }
+    .preview-table tr:last-child td { border-bottom: none; }
+    .preview-meta { color: var(--muted); margin-bottom: 1rem; }
+    .actions { margin-top: 1.5rem; display: flex; gap: 0.75rem; align-items: center; }
+    .back-link { color: var(--accent); text-decoration: none; font-size: 0.875rem; cursor: pointer; }
+    .back-link:hover { text-decoration: underline; }
+    #result-card { display: none; }
+    #result-card.visible { display: block; }
+    .result-ok { color: var(--success); }
+    .result-err { color: var(--error); }
+    .result-details { margin-top: 1rem; max-height: 240px; overflow-y: auto; font-size: 0.875rem; }
+    .result-details .item { padding: 0.25rem 0; border-bottom: 1px solid var(--border); }
+    .result-details .item.ok { color: var(--success); }
+    .result-details .item.fail { color: var(--error); }
+    #step1-card { display: block; }
+    #step2-card { display: none; }
+    #step2-card.visible { display: block; }
+    #step1-card.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Email campaign</h1>
+    <div class="steps">
+      <div class="step-dot active" id="dot-1">1</div>
+      <div class="step-dot" id="dot-2">2</div>
+      <div class="step-dot" id="dot-3">3</div>
+    </div>
+
+    <div class="card" id="step1-card">
+      <p class="preview-meta">Step 1 – Upload your CSV</p>
+      <form id="upload-form">
+        <label class="upload-zone" for="csv_file">
+          <input type="file" name="csv_file" id="csv_file" accept=".csv" required>
+          <p>Drop a CSV here or click to choose</p>
+          <p class="hint">Columns: Business Name, Email, City, Vorname, Stars (optional: Positive Observation)</p>
+        </label>
+        <button type="submit" class="btn" id="btn-upload">Continue</button>
+      </form>
+    </div>
+
+    <div class="card" id="step2-card">
+      <p class="preview-meta">Step 2 – Preview: <strong id="preview-filename"></strong> (<span id="preview-total">0</span> row(s))</p>
+      <table class="preview-table">
+        <thead><tr id="preview-thead"></tr></thead>
+        <tbody id="preview-tbody"></tbody>
+      </table>
+      <p class="hint" id="preview-more" style="margin-top:0.5rem; display:none;"></p>
+      <div class="actions">
+        <span class="back-link" id="back-link">← Back to upload</span>
+        <button type="button" class="btn" id="btn-send">Send emails</button>
+      </div>
+    </div>
+
+    <div class="card" id="result-card">
+      <p class="preview-meta">Step 3 – Result</p>
+      <p id="result-message"></p>
+      <div class="result-details" id="result-details"></div>
+      <div class="actions" style="margin-top:1rem;">
+        <a href="{{ url_for('index') }}" class="btn">Start over</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var currentFile = null;
+
+    function setStep(step) {
+      document.getElementById("dot-1").classList.remove("active", "done");
+      document.getElementById("dot-2").classList.remove("active", "done");
+      document.getElementById("dot-3").classList.remove("active", "done");
+      if (step >= 1) document.getElementById("dot-1").classList.add(step > 1 ? "done" : "active");
+      if (step >= 2) document.getElementById("dot-2").classList.add(step > 2 ? "done" : "active");
+      if (step >= 3) document.getElementById("dot-3").classList.add("active");
+      document.getElementById("step1-card").classList.toggle("hidden", step !== 1);
+      document.getElementById("step2-card").classList.toggle("visible", step === 2);
+      document.getElementById("result-card").classList.toggle("visible", step === 3);
+    }
+
+    document.getElementById("upload-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var input = document.getElementById("csv_file");
+      if (!input.files || !input.files[0]) return;
+      currentFile = input.files[0];
+      var formData = new FormData();
+      formData.append("csv_file", currentFile);
+      var btn = document.getElementById("btn-upload");
+      btn.disabled = true;
+      btn.textContent = "Loading…";
+      fetch("{{ url_for('upload') }}", { method: "POST", body: formData })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          btn.disabled = false;
+          btn.textContent = "Continue";
+          if (!data.ok) {
+            alert(data.error || "Upload failed");
+            return;
+          }
+          var thead = document.getElementById("preview-thead");
+          thead.innerHTML = "";
+          data.headers.forEach(function (h) {
+            var th = document.createElement("th");
+            th.textContent = h;
+            thead.appendChild(th);
+          });
+          var tbody = document.getElementById("preview-tbody");
+          tbody.innerHTML = "";
+          data.rows.forEach(function (row) {
+            var tr = document.createElement("tr");
+            data.headers.forEach(function (h) {
+              var td = document.createElement("td");
+              td.textContent = row[h] || "";
+              tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+          document.getElementById("preview-filename").textContent = data.filename;
+          document.getElementById("preview-total").textContent = data.total;
+          var more = document.getElementById("preview-more");
+          if (data.total > data.rows.length) {
+            more.style.display = "block";
+            more.textContent = "Showing first " + data.rows.length + " of " + data.total + " rows.";
+          } else {
+            more.style.display = "none";
+          }
+          setStep(2);
+        })
+        .catch(function (err) {
+          btn.disabled = false;
+          btn.textContent = "Continue";
+          alert("Error: " + err.message);
+        });
+    });
+
+    document.getElementById("back-link").addEventListener("click", function () {
+      setStep(1);
+      currentFile = null;
+    });
+
+    document.getElementById("btn-send").addEventListener("click", function () {
+      if (!currentFile) return;
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = "Sending…";
+      var formData = new FormData();
+      formData.append("csv_file", currentFile);
+      fetch("{{ url_for('send') }}", { method: "POST", body: formData })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          document.getElementById("result-message").textContent = data.message;
+          document.getElementById("result-message").className = data.ok ? "result-ok" : "result-err";
+          var details = document.getElementById("result-details");
+          details.innerHTML = "";
+          if (data.details && data.details.length) {
+            data.details.forEach(function (d) {
+              var div = document.createElement("div");
+              div.className = "item " + (d.ok ? "ok" : "fail");
+              div.textContent = d.ok ? "Sent: " + d.email : "Failed " + d.email + ": " + (d.error || "");
+              details.appendChild(div);
+            });
+          }
+          setStep(3);
+          btn.textContent = "Send emails";
+          btn.disabled = false;
+        })
+        .catch(function (err) {
+          document.getElementById("result-message").textContent = "Error: " + err.message;
+          document.getElementById("result-message").className = "result-err";
+          document.getElementById("result-details").innerHTML = "";
+          setStep(3);
+          btn.textContent = "Send emails";
+          btn.disabled = false;
+        });
+    });
+  </script>
+</body>
+</html>
