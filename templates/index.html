@@ -54,6 +54,17 @@
     .upload-zone input { display: none; }
     .upload-zone p { margin: 0; color: var(--muted); }
     .upload-zone .hint { font-size: 0.875rem; margin-top: 0.5rem; }
+    .form-row { margin-top: 0.75rem; }
+    .form-row label { display: block; font-size: 0.875rem; color: var(--muted); margin-bottom: 0.35rem; }
+    .form-row input {
+      width: 100%;
+      background: #111116;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.95rem;
+    }
     .btn {
       display: inline-block;
       padding: 0.6rem 1.2rem;
@@ -107,6 +118,14 @@
           <p>Drop a CSV here or click to choose</p>
           <p class="hint">Columns: Business Name, Email, City, Vorname, Stars (optional: Positive Observation)</p>
         </label>
+        <div class="form-row">
+          <label for="mail_user">Sender email (MAIL_USER)</label>
+          <input type="email" id="mail_user" placeholder="you@example.com" required>
+        </div>
+        <div class="form-row">
+          <label for="mail_pass">Sender password / app password (MAIL_PASS)</label>
+          <input type="password" id="mail_pass" placeholder="Enter password" required>
+        </div>
         <button type="submit" class="btn" id="btn-upload">Continue</button>
       </form>
     </div>
@@ -136,6 +155,8 @@
 
   <script>
     var currentFile = null;
+    var currentMailUser = "";
+    var currentMailPass = "";
 
     function setStep(step) {
       document.getElementById("dot-1").classList.remove("active", "done");
@@ -153,7 +174,15 @@
       e.preventDefault();
       var input = document.getElementById("csv_file");
       if (!input.files || !input.files[0]) return;
+      var mailUser = document.getElementById("mail_user").value.trim();
+      var mailPass = document.getElementById("mail_pass").value.trim();
+      if (!mailUser || !mailPass) {
+        alert("Please enter sender email and password.");
+        return;
+      }
       currentFile = input.files[0];
+      currentMailUser = mailUser;
+      currentMailPass = mailPass;
       var formData = new FormData();
       formData.append("csv_file", currentFile);
       var btn = document.getElementById("btn-upload");
@@ -216,6 +245,8 @@
       btn.textContent = "Sending…";
       var formData = new FormData();
       formData.append("csv_file", currentFile);
+      formData.append("mail_user", currentMailUser);
+      formData.append("mail_pass", currentMailPass);
       fetch("{{ url_for('send') }}", { method: "POST", body: formData })
         .then(function (r) { return r.json(); })
         .then(function (data) {

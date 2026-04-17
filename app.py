@@ -69,10 +69,12 @@ def send():
     f = request.files["csv_file"]
     if not f or f.filename == "":
         return jsonify({"ok": False, "message": "No file selected.", "details": []}), 400
+    mail_user = (request.form.get("mail_user") or "").strip()
+    mail_pass = (request.form.get("mail_pass") or "").strip()
     fd, path = tempfile.mkstemp(suffix=".csv")
     try:
         f.save(path)
-        ok, message, details = mailer.process_csv_path(path)
+        ok, message, details = mailer.process_csv_path(path, mail_user=mail_user, mail_pass=mail_pass)
         return jsonify({"ok": ok, "message": message, "details": details})
     finally:
         try:
