@@ -50,9 +50,9 @@ EMAIL_SUBJECT_TEMPLATE = "Quick question about {BusinessName}"
 EMAIL_BODY_TEMPLATE = """\
 Hallo {First_Name},
 
-ich schaue mir aktuell einige {{Branche}}-Betriebe in {{City}} an und bin dabei auf {{BusinessName}} gestossen.
-Mir ist aufgefallen, dass Sie aktuell bei {{ReviewsCount}} Google-Bewertungen stehen, während {{Competitor1}} und {{KCompetitor2}} in Ihrer Nähe deutlich mehr Sichtbarkeit über Google Maps haben.
-Was schade ist – gerade weil {{PositiveObservation}} wirklich positiv heraussticht.
+ich schaue mir aktuell einige {Branche}-Betriebe in {City} an und bin dabei auf {BusinessName} gestossen.
+Mir ist aufgefallen, dass Sie aktuell bei {ReviewsCount} Google-Bewertungen stehen, während {Competitor1} und {KCompetitor2} in Ihrer Nähe deutlich mehr Sichtbarkeit über Google Maps haben.
+Was schade ist – gerade weil {PositiveObservation} wirklich positiv heraussticht.
 Falls Sie Ihre lokale Sichtbarkeit verbessern möchten, habe ich eine sehr einfache Idee, mit der Sie in den nächsten 30 Tagen – mit minimalem Aufwand – deutlich sichtbarer werden können.
 Möchten Sie, dass ich Ihnen das kurz, kostenlos und unverbindlich zeige?
 Beste Grüsse
@@ -67,6 +67,16 @@ HEADER_ALIASES = {
   "city": ("city", "ort", "location"),
   "stars": ("stars", "reviewscount", "reviews_count", "reviews", "google_reviews"),
   "positive_observation": ("positive observation", "positive_observation", "observation"),
+  "branche": ("niche", "branche", "industry", "category", "sector"),
+  "competitor1": ("competitor1", "competitor_1", "konkurrent1", "comp1"),
+  "competitor2": (
+    "competitor2",
+    "competitor_2",
+    "konkurrent2",
+    "kcompetitor2",
+    "k_competitor2",
+    "comp2",
+  ),
 }
 
 
@@ -146,14 +156,20 @@ def send_email(to_email, row, mail_user, mail_pass):
   city = _sanitize_header(_get_value(row, header_map, "city"))
   reviews_count = _sanitize_header(_get_value(row, header_map, "stars"))
   positive_observation = _sanitize_header(_get_value(row, header_map, "positive_observation")) or "your business"
+  branche = _sanitize_header(_get_value(row, header_map, "branche"))
+  competitor1 = _sanitize_header(_get_value(row, header_map, "competitor1"))
+  competitor2 = _sanitize_header(_get_value(row, header_map, "competitor2"))
   to_email = _sanitize_header(to_email)
 
   subject = EMAIL_SUBJECT_TEMPLATE.format(BusinessName=business_name or "your business")
   body = EMAIL_BODY_TEMPLATE.format(
     First_Name=first_name,
+    Branche=branche or "lokale",
     City=city or "your area",
     BusinessName=business_name or "your business",
     ReviewsCount=reviews_count or "—",
+    Competitor1=competitor1 or "andere Betriebe",
+    KCompetitor2=competitor2 or "weitere Anbieter",
     PositiveObservation=positive_observation,
   )
 
