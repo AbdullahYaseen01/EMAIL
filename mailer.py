@@ -131,17 +131,6 @@ def _sanitize_header(value):
   return " ".join(s.split())  # collapse multiple spaces
 
 
-def _normalize_mail_user(mail_user):
-  """Use the live mailbox address (legacy typo: yarbug-media@ -> yarbugmedia@)."""
-  s = (mail_user or "").strip()
-  if "@" not in s:
-    return s
-  local, _, domain = s.partition("@")
-  if domain.lower() == "yarbug.ch" and local.lower() == "yarbug-media":
-    return "yarbugmedia@yarbug.ch"
-  return s
-
-
 def save_to_sent_folder(msg, mail_user, mail_pass):
   """Append a copy of the message to Hostinger Sent folder so it shows in webmail."""
   try:
@@ -213,7 +202,7 @@ def process_csv_path(csv_path, mail_user=None, mail_pass=None):
   Process a CSV file at the given path: validate header, then send one email per row.
   Returns (success: bool, message: str, details: list).
   """
-  active_mail_user = _normalize_mail_user(mail_user or MAIL_USER or "")
+  active_mail_user = (mail_user or MAIL_USER or "").strip()
   active_mail_pass = (mail_pass or MAIL_PASS or "").strip()
   if not active_mail_user or not active_mail_pass:
     return False, (
