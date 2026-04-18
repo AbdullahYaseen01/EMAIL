@@ -1,6 +1,6 @@
 # Email campaign
 
-Send personalized emails from a CSV (Business Name, Email, City, Vorname, Stars). Step-by-step web UI: upload CSV → preview → send.
+Send personalized emails from a CSV (Business Name, Email, City, Stars; optional columns for competitors, reviews, etc.). Greeting uses the business/company name. Step-by-step web UI: upload CSV → preview → send.
 
 ## Setup
 

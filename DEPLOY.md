@@ -16,7 +16,7 @@ Vercel supports Flask with zero config. Your `app.py` is auto-detected.
 3. **Set environment variables** (required for sending email)
    - In the Vercel project: **Settings → Environment Variables**
    - Add:
-     - `MAIL_USER` = your sending email (e.g. `afrem@agency.yarbug-media.ch`)
+     - `MAIL_USER` = your sending email (e.g. `yarbugmedia@yarbug.ch`)
      - `MAIL_PASS` = your email password
    - Optional: `SECRET_KEY` for session signing (Vercel can generate one)
 

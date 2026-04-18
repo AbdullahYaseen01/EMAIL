@@ -9,7 +9,7 @@ from email.message import EmailMessage
 from email.utils import formatdate
 
 # Config
-# CSV columns: Business Name, Email, City, Vorname, Stars (optional: Positive Observation)
+# CSV columns: Business Name, Email, City, Stars (optional: Vorname, Positive Observation)
 # On Vercel/production set MAIL_USER and MAIL_PASS in environment variables.
 DEFAULT_SMTP_HOST = "smtp.hostinger.com"
 DEFAULT_SMTP_PORT = 465
@@ -48,7 +48,7 @@ def _resolve_mail_servers(mail_user):
 EMAIL_SUBJECT_TEMPLATE = "Quick question about {BusinessName}"
 
 EMAIL_BODY_TEMPLATE = """\
-Hallo {First_Name},
+Hallo {BusinessName},
 
 ich schaue mir aktuell einige {Branche}-Betriebe in {City} an und bin dabei auf {BusinessName} gestossen.
 Mir ist aufgefallen, dass Sie aktuell bei {ReviewsCount} Google-Bewertungen stehen, während {Competitor1} und {KCompetitor2} in Ihrer Nähe deutlich mehr Sichtbarkeit über Google Maps haben.
@@ -131,6 +131,17 @@ def _sanitize_header(value):
   return " ".join(s.split())  # collapse multiple spaces
 
 
+def _normalize_mail_user(mail_user):
+  """Use the live mailbox address (legacy typo: yarbug-media@ -> yarbugmedia@)."""
+  s = (mail_user or "").strip()
+  if "@" not in s:
+    return s
+  local, _, domain = s.partition("@")
+  if domain.lower() == "yarbug.ch" and local.lower() == "yarbug-media":
+    return "yarbugmedia@yarbug.ch"
+  return s
+
+
 def save_to_sent_folder(msg, mail_user, mail_pass):
   """Append a copy of the message to Hostinger Sent folder so it shows in webmail."""
   try:
@@ -152,7 +163,6 @@ def send_email(to_email, row, mail_user, mail_pass):
   smtp_host, smtp_port, imap_host, imap_port = _resolve_mail_servers(mail_user)
   header_map = row.get("__header_map__", {})
   business_name = _sanitize_header(_get_value(row, header_map, "business_name"))
-  first_name = _sanitize_header(_get_value(row, header_map, "first_name")) or "there"
   city = _sanitize_header(_get_value(row, header_map, "city"))
   reviews_count = _sanitize_header(_get_value(row, header_map, "stars"))
   positive_observation = _sanitize_header(_get_value(row, header_map, "positive_observation")) or "your business"
@@ -163,7 +173,6 @@ def send_email(to_email, row, mail_user, mail_pass):
 
   subject = EMAIL_SUBJECT_TEMPLATE.format(BusinessName=business_name or "your business")
   body = EMAIL_BODY_TEMPLATE.format(
-    First_Name=first_name,
     Branche=branche or "lokale",
     City=city or "your area",
     BusinessName=business_name or "your business",
@@ -204,7 +213,7 @@ def process_csv_path(csv_path, mail_user=None, mail_pass=None):
   Process a CSV file at the given path: validate header, then send one email per row.
   Returns (success: bool, message: str, details: list).
   """
-  active_mail_user = (mail_user or MAIL_USER or "").strip()
+  active_mail_user = _normalize_mail_user(mail_user or MAIL_USER or "")
   active_mail_pass = (mail_pass or MAIL_PASS or "").strip()
   if not active_mail_user or not active_mail_pass:
     return False, (
@@ -220,7 +229,7 @@ def process_csv_path(csv_path, mail_user=None, mail_pass=None):
   with f:
     first_row = next(csv.reader(f), None)
     if not first_row:
-      return False, "CSV is empty. Add header: Business Name,Email,City,Vorname,Stars", []
+      return False, "CSV is empty. Add header: Business Name,Email,City,Stars", []
     fieldnames = [c.strip().lstrip("\ufeff") for c in first_row]
     header_map = _build_header_map(fieldnames)
     if "email" not in header_map:
